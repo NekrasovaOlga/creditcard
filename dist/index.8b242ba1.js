@@ -235,7 +235,7 @@
                                 try {
                                     if ("input" === l) d.inputType = "insertText", f = new InputEvent(l, d);
                                     else f = new CustomEvent(l, d);
-                                } catch (e1) {
+                                } catch (e) {
                                     (f = document.createEvent("CustomEvent")).initCustomEvent(l, d.bubbles, d.cancelable, d.detail);
                                 }
                                 e.type && (0, n.default)(f, e), i.dispatchEvent(f);
@@ -466,8 +466,8 @@
                                     var h = p.value;
                                     f[0] === h && f.shift();
                                 }
-                            } catch (e1) {
-                                d.e(e1);
+                            } catch (e) {
+                                d.e(e);
                             } finally{
                                 d.f();
                             }
@@ -689,8 +689,8 @@
                         var a, n, r = [], o = !0, s = !1;
                         try {
                             for(i = i.call(e); !(o = (a = i.next()).done) && (r.push(a.value), !t || r.length !== t); o = !0);
-                        } catch (e1) {
-                            s = !0, n = e1;
+                        } catch (e) {
+                            s = !0, n = e;
                         } finally{
                             try {
                                 o || null == i.return || i.return();
@@ -2109,8 +2109,8 @@
                         var a, n, r = [], o = !0, s = !1;
                         try {
                             for(i = i.call(e); !(o = (a = i.next()).done) && (r.push(a.value), !t || r.length !== t); o = !0);
-                        } catch (e1) {
-                            s = !0, n = e1;
+                        } catch (e) {
+                            s = !0, n = e;
                         } finally{
                             try {
                                 o || null == i.return || i.return();

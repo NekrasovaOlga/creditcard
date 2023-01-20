@@ -26,6 +26,24 @@
   display: flex;
 }
 
+.error_block {
+  width: 100%;
+  color: red;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0;
+  display: none;
+}
+
+.success_block {
+  width: 100%;
+  color: #04ff00;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0;
+  display: none;
+}
+
 .card {
   width: 415px;
   height: 809px;
@@ -793,7 +811,7 @@
 }
 
 .air-datepicker.-from-top- {
-  transform: translateY(calc(var(--adp-transition-offset) * -1) );
+  transform: translateY(calc(var(--adp-transition-offset) * -1));
 }
 
 .air-datepicker.-from-right- {
@@ -805,7 +823,7 @@
 }
 
 .air-datepicker.-from-left- {
-  transform: translateX(calc(var(--adp-transition-offset) * -1) );
+  transform: translateX(calc(var(--adp-transition-offset) * -1));
 }
 
 .air-datepicker.-active-:not(.-custom-position-) {
@@ -852,7 +870,7 @@
 }
 
 .air-datepicker.-is-mobile-:not(.-custom-position-) {
-  transform: translate(-50%, calc(-50% + var(--adp-transition-offset)) );
+  transform: translate(-50%, calc(-50% + var(--adp-transition-offset)));
 }
 
 .air-datepicker.-is-mobile-.-active-:not(.-custom-position-) {

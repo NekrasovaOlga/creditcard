@@ -142,14 +142,14 @@
       this[globalName] = mainExports;
     }
   }
-})({"9jz0R":[function(require,module,exports) {
-"use strict";
+})({"cv6me":[function(require,module,exports) {
 var global = arguments[3];
 var HMR_HOST = null;
 var HMR_PORT = null;
 var HMR_SECURE = false;
 var HMR_ENV_HASH = "d6ea1d42532a7575";
 module.bundle.HMR_BUNDLE_ID = "b3c595598cfc62b9";
+"use strict";
 /* global HMR_HOST, HMR_PORT, HMR_ENV_HASH, HMR_SECURE, chrome, browser, globalThis, __parcel__import__, __parcel__importScripts__, ServiceWorkerGlobalScope */ /*::
 import type {
   HMRAsset,
@@ -158,7 +158,7 @@ import type {
 interface ParcelRequire {
   (string): mixed;
   cache: {|[string]: ParcelModule|};
-  hotData: mixed;
+  hotData: {|[string]: mixed|};
   Module: any;
   parent: ?ParcelRequire;
   isParcelRequire: true;
@@ -200,7 +200,7 @@ var OldModule = module.bundle.Module;
 function Module(moduleName) {
     OldModule.call(this, moduleName);
     this.hot = {
-        data: module.bundle.hotData,
+        data: module.bundle.hotData[moduleName],
         _acceptCallbacks: [],
         _disposeCallbacks: [],
         accept: function(fn) {
@@ -210,10 +210,11 @@ function Module(moduleName) {
             this._disposeCallbacks.push(fn);
         }
     };
-    module.bundle.hotData = undefined;
+    module.bundle.hotData[moduleName] = undefined;
 }
 module.bundle.Module = Module;
-var checkedAssets, acceptedAssets, assetsToAccept /*: Array<[ParcelRequire, string]> */ ;
+module.bundle.hotData = {};
+var checkedAssets, assetsToDispose, assetsToAccept /*: Array<[ParcelRequire, string]> */ ;
 function getHostname() {
     return HMR_HOST || (location.protocol.indexOf("http") === 0 ? location.hostname : "localhost");
 }
@@ -236,8 +237,8 @@ if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== "undefined") {
     } // $FlowFixMe
     ws.onmessage = async function(event) {
         checkedAssets = {} /*: {|[string]: boolean|} */ ;
-        acceptedAssets = {} /*: {|[string]: boolean|} */ ;
         assetsToAccept = [];
+        assetsToDispose = [];
         var data = JSON.parse(event.data);
         if (data.type === "update") {
             // Remove error overlay if there is one
@@ -249,10 +250,22 @@ if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== "undefined") {
             if (handled) {
                 console.clear(); // Dispatch custom event so other runtimes (e.g React Refresh) are aware.
                 if (typeof window !== "undefined" && typeof CustomEvent !== "undefined") window.dispatchEvent(new CustomEvent("parcelhmraccept"));
-                await hmrApplyUpdates(assets);
-                for(var i = 0; i < assetsToAccept.length; i++){
-                    var id = assetsToAccept[i][1];
-                    if (!acceptedAssets[id]) hmrAcceptRun(assetsToAccept[i][0], id);
+                await hmrApplyUpdates(assets); // Dispose all old assets.
+                let processedAssets = {} /*: {|[string]: boolean|} */ ;
+                for(let i = 0; i < assetsToDispose.length; i++){
+                    let id = assetsToDispose[i][1];
+                    if (!processedAssets[id]) {
+                        hmrDispose(assetsToDispose[i][0], id);
+                        processedAssets[id] = true;
+                    }
+                } // Run accept callbacks. This will also re-execute other disposed assets in topological order.
+                processedAssets = {};
+                for(let i = 0; i < assetsToAccept.length; i++){
+                    let id = assetsToAccept[i][1];
+                    if (!processedAssets[id]) {
+                        hmrAccept(assetsToAccept[i][0], id);
+                        processedAssets[id] = true;
+                    }
                 }
             } else fullReload();
         }
@@ -505,30 +518,42 @@ function hmrAcceptCheckOne(bundle, id, depsByBundle) {
     if (checkedAssets[id]) return true;
     checkedAssets[id] = true;
     var cached = bundle.cache[id];
-    assetsToAccept.push([
+    assetsToDispose.push([
         bundle,
         id
     ]);
-    if (!cached || cached.hot && cached.hot._acceptCallbacks.length) return true;
+    if (!cached || cached.hot && cached.hot._acceptCallbacks.length) {
+        assetsToAccept.push([
+            bundle,
+            id
+        ]);
+        return true;
+    }
 }
-function hmrAcceptRun(bundle, id) {
+function hmrDispose(bundle, id) {
     var cached = bundle.cache[id];
-    bundle.hotData = {};
-    if (cached && cached.hot) cached.hot.data = bundle.hotData;
+    bundle.hotData[id] = {};
+    if (cached && cached.hot) cached.hot.data = bundle.hotData[id];
     if (cached && cached.hot && cached.hot._disposeCallbacks.length) cached.hot._disposeCallbacks.forEach(function(cb) {
-        cb(bundle.hotData);
+        cb(bundle.hotData[id]);
     });
     delete bundle.cache[id];
-    bundle(id);
-    cached = bundle.cache[id];
+}
+function hmrAccept(bundle, id) {
+    // Execute the module.
+    bundle(id); // Run the accept callbacks in the new version of the module.
+    var cached = bundle.cache[id];
     if (cached && cached.hot && cached.hot._acceptCallbacks.length) cached.hot._acceptCallbacks.forEach(function(cb) {
         var assetsToAlsoAccept = cb(function() {
             return getParents(module.bundle.root, id);
         });
-        if (assetsToAlsoAccept && assetsToAccept.length) // $FlowFixMe[method-unbinding]
-        assetsToAccept.push.apply(assetsToAccept, assetsToAlsoAccept);
+        if (assetsToAlsoAccept && assetsToAccept.length) {
+            assetsToAlsoAccept.forEach(function(a) {
+                hmrDispose(a[0], a[1]);
+            }); // $FlowFixMe[method-unbinding]
+            assetsToAccept.push.apply(assetsToAccept, assetsToAlsoAccept);
+        }
     });
-    acceptedAssets[id] = true;
 }
 
 },{}],"6rimH":[function(require,module,exports) {
@@ -537,6 +562,7 @@ var _redom = require("redom");
 var _airDatepicker = require("air-datepicker");
 var _airDatepickerDefault = parcelHelpers.interopDefault(_airDatepicker);
 var _airDatepickerCss = require("air-datepicker/air-datepicker.css");
+const validation = require("57fe43db4af2540c");
 let cardName, cardDate, cardNumber;
 const cartCreate = ()=>{
     cardName = (0, _redom.el)("span", {
@@ -551,7 +577,7 @@ const cartCreate = ()=>{
         className: "card__personal"
     }, [
         cardName,
-        cardDate, 
+        cardDate
     ]);
     cardNumber = (0, _redom.el)("span", {
         className: "card__number",
@@ -582,17 +608,17 @@ const createForm = ()=>{
         (0, _redom.el)("input", {
             className: "input input__holder",
             type: "text",
-            oninput (event) {
-                const targetId = event.target;
-                const reg = /[A-Za-z ]/gi;
-                const result = targetId.value.match(reg);
-                targetId.value = result !== null ? result.join("") : "";
-                (0, _redom.setAttr)(cardName, {
-                    textContent: targetId.value
-                });
-            }
+            name: "cardFio"
         })
     ]);
+    const wrapError = (0, _redom.el)("h2", {
+        className: "error_block",
+        textContent: "Ошибка валидации"
+    });
+    const wrapSuccess = (0, _redom.el)("h2", {
+        className: "success_block",
+        textContent: "Данные валидны"
+    });
     const wrapNumber = (0, _redom.el)("div", {
         className: "form__input-wrap form__input-wrap_number"
     }, [
@@ -603,14 +629,7 @@ const createForm = ()=>{
         (0, _redom.el)("input", {
             className: "input input__number",
             id: "cardNumber",
-            oninput (event) {
-                const targetId = event.target;
-                const cardNumberMask = new Inputmask("9999-9999-9999-9999");
-                cardNumberMask.mask(targetId);
-                (0, _redom.setAttr)(cardNumber, {
-                    textContent: targetId.value
-                });
-            }
+            name: "cardNumber"
         })
     ]);
     const wrapDate = (0, _redom.el)("div", {
@@ -623,6 +642,7 @@ const createForm = ()=>{
         (0, _redom.el)("input", {
             className: "input input__date",
             type: "text",
+            name: "date",
             onmouseover (event) {
                 new (0, _airDatepickerDefault.default)(event.target, {
                     view: "months",
@@ -650,21 +670,41 @@ const createForm = ()=>{
         (0, _redom.el)("input", {
             className: "input input__cvv",
             type: "text",
-            oninput (event) {
-                const targetId = event.target;
-                var cardCVV = new Inputmask("999");
-                cardCVV.mask(targetId);
-            }
+            name: "cvv"
         })
     ]);
     const buttonSubmit = (0, _redom.el)("button", {
         className: "form__button",
-        textContent: "CHECK OUT"
+        textContent: "CHECK OUT",
+        type: "submit"
     });
     const form = (0, _redom.el)("form", {
         className: "form",
-        id: "form"
+        id: "form",
+        onsubmit (event) {
+            event.preventDefault();
+            const data = {
+                fio: form.cardFio.value,
+                number: form.cardNumber.value,
+                date: form.date.value,
+                cvv: form.cvv.value
+            };
+            const result = validation(data.cvv, data.fio, data.number);
+            if (!result) {
+                wrapError.style.display = "flex";
+                setTimeout(()=>{
+                    wrapError.style.display = "none";
+                }, 2000);
+            } else {
+                wrapSuccess.style.display = "flex";
+                setTimeout(()=>{
+                    wrapSuccess.style.display = "none";
+                }, 2000);
+            }
+        }
     }, [
+        wrapError,
+        wrapSuccess,
         wrapHolder,
         wrapNumber,
         wrapDate,
@@ -682,7 +722,7 @@ const createElement = ()=>{
 };
 (0, _redom.setChildren)(document.body, createElement());
 
-},{"redom":"iahd6","air-datepicker":"grWkP","air-datepicker/air-datepicker.css":"aM9jX","@parcel/transformer-js/src/esmodule-helpers.js":"8jubI"}],"iahd6":[function(require,module,exports) {
+},{"redom":"iahd6","air-datepicker":"grWkP","air-datepicker/air-datepicker.css":"aM9jX","@parcel/transformer-js/src/esmodule-helpers.js":"8jubI","57fe43db4af2540c":"6Dpgn"}],"iahd6":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "List", ()=>List);
@@ -1449,8 +1489,8 @@ exports.default = (0, _airDatepickerDefault.default);
             for(var t = arguments.length, i = new Array(t > 1 ? t - 1 : 0), s = 1; s < t; s++)i[s - 1] = arguments[s];
             return i.filter((e)=>e).forEach((t)=>{
                 for (let [i, s] of Object.entries(t))if (void 0 !== s && "[object Object]" === s.toString()) {
-                    let t1 = void 0 !== e[i] ? e[i].toString() : void 0, a = s.toString(), n = Array.isArray(s) ? [] : {};
-                    e[i] = e[i] ? t1 !== a ? n : e[i] : n, w(e[i], s);
+                    let t = void 0 !== e[i] ? e[i].toString() : void 0, a = s.toString(), n = Array.isArray(s) ? [] : {};
+                    e[i] = e[i] ? t !== a ? n : e[i] : n, w(e[i], s);
                 } else e[i] = s;
             }), e;
         }
@@ -1641,12 +1681,12 @@ exports.default = (0, _airDatepickerDefault.default);
                     let { date: r  } = i;
                     if (2 === s.length) {
                         if (this.rangeFromFocused && !p(r, a)) {
-                            let { hours: e1 , minutes: t1  } = o(n);
-                            r.setHours(e1), r.setMinutes(t1), this.dp.rangeDateFrom = r, this.dp.replaceDate(n, r);
+                            let { hours: e , minutes: t  } = o(n);
+                            r.setHours(e), r.setMinutes(t), this.dp.rangeDateFrom = r, this.dp.replaceDate(n, r);
                         }
                         if (this.rangeToFocused && !m(r, n)) {
-                            let { hours: e2 , minutes: t2  } = o(a);
-                            r.setHours(e2), r.setMinutes(t2), this.dp.rangeDateTo = r, this.dp.replaceDate(a, r);
+                            let { hours: e , minutes: t  } = o(a);
+                            r.setHours(e), r.setMinutes(t), this.dp.rangeDateTo = r, this.dp.replaceDate(a, r);
                         }
                     }
                 }), M(this, "onMouseUp", ()=>{
@@ -1690,11 +1730,11 @@ exports.default = (0, _airDatepickerDefault.default);
             _getDayNamesHtml() {
                 let e = arguments.length > 0 && void 0 !== arguments[0] ? arguments[0] : this.dp.locale.firstDay, t = "", s = this.dp.isWeekend, { onClickDayName: a  } = this.opts, n = e, r = 0;
                 for(; r < 7;){
-                    let e1 = n % 7, h = c("air-datepicker-body--day-name", {
-                        [i.cssClassWeekend]: s(e1),
+                    let e = n % 7, h = c("air-datepicker-body--day-name", {
+                        [i.cssClassWeekend]: s(e),
                         "-clickable-": !!a
-                    }), o = this.dp.locale.daysMin[e1];
-                    t += '<div class="'.concat(h, "\" data-day-index='").concat(e1, "'>").concat(o, "</div>"), r++, n++;
+                    }), o = this.dp.locale.daysMin[e];
+                    t += '<div class="'.concat(h, "\" data-day-index='").concat(e, "'>").concat(o, "</div>"), r++, n++;
                 }
                 return t;
             }
@@ -1706,8 +1746,8 @@ exports.default = (0, _airDatepickerDefault.default);
                     return new Date(i, s, a - t);
                 }(n, l), u = i + l + d, p = c.getDate(), { year: m , month: g  } = o(c), D = 0;
                 for(; D < u;){
-                    let e1 = new Date(m, g, p + D);
-                    this._generateCell(e1), D++;
+                    let e = new Date(m, g, p + D);
+                    this._generateCell(e), D++;
                 }
             }
             _generateCell(e) {
@@ -1832,8 +1872,8 @@ exports.default = (0, _airDatepickerDefault.default);
                         break;
                     case i.years:
                         {
-                            let e1 = d(this.dp.viewDate);
-                            t && r.year >= e1[0] && this._disableNav("prev"), s && h.year <= e1[1] && this._disableNav("next");
+                            let e = d(this.dp.viewDate);
+                            t && r.year >= e[0] && this._disableNav("prev"), s && h.year <= e[1] && this._disableNav("next");
                             break;
                         }
                 }
@@ -2177,8 +2217,8 @@ exports.default = (0, _airDatepickerDefault.default);
                     if ("Enter" === t) {
                         if (s.currentView !== n.minView) return void s.down();
                         if (a) {
-                            let e1 = s._checkIfDateIsSelected(a);
-                            return void (e1 ? s._handleAlreadySelectedDates(e1, a) : s.selectDate(a));
+                            let e = s._checkIfDateIsSelected(a);
+                            return void (e ? s._handleAlreadySelectedDates(e, a) : s.selectDate(a));
                         }
                     }
                     "Escape" === t && this.dp.hide();
@@ -2317,10 +2357,10 @@ exports.default = (0, _airDatepickerDefault.default);
                             width: n.width,
                             height: r.$el.offsetHeight
                         }, u = 0, p = 0), o !== l && o !== document.body) {
-                            let e1 = o.getBoundingClientRect();
+                            let e = o.getBoundingClientRect();
                             h = {
-                                top: n.top - e1.top,
-                                left: n.left - e1.left,
+                                top: n.top - e.top,
+                                left: n.left - e.left,
                                 width: n.width,
                                 height: n.height
                             }, u = 0, p = 0;
@@ -2385,10 +2425,10 @@ exports.default = (0, _airDatepickerDefault.default);
                     this.viewDate = e;
                     let { onChangeViewDate: s  } = this.opts;
                     if (s) {
-                        let { month: e1 , year: t1  } = this.parsedViewDate;
+                        let { month: e , year: t  } = this.parsedViewDate;
                         s({
-                            month: e1,
-                            year: t1,
+                            month: e,
+                            year: t,
                             decade: this.curDecade
                         });
                     }
@@ -2537,11 +2577,11 @@ exports.default = (0, _airDatepickerDefault.default);
                 this.locale = (h = e, JSON.parse(JSON.stringify(h))), t && (this.locale.dateFormat = t), void 0 !== n && "" !== n && (this.locale.timeFormat = n);
                 let { timeFormat: o  } = this.locale;
                 if ("" !== i && (this.locale.firstDay = i), s && "function" != typeof t) {
-                    let e1 = o ? r : "";
+                    let e = o ? r : "";
                     this.locale.dateFormat = [
                         this.locale.dateFormat,
                         o || ""
-                    ].join(e1);
+                    ].join(e);
                 }
                 a && "function" != typeof t && (this.locale.dateFormat = this.locale.timeFormat);
             }
@@ -2585,7 +2625,7 @@ exports.default = (0, _airDatepickerDefault.default);
                     yyyy1: n[0],
                     yyyy2: n[1]
                 };
-                for (let [e1, t1] of Object.entries(l))i = r(i, k(e1), t1);
+                for (let [e, t] of Object.entries(l))i = r(i, k(e), t);
                 return i;
             }
             down(e) {
@@ -2745,6 +2785,18 @@ exports.default = (0, _airDatepickerDefault.default);
     }();
 });
 
-},{}],"aM9jX":[function() {},{}]},["9jz0R","6rimH"], "6rimH", "parcelRequire7921")
+},{}],"aM9jX":[function() {},{}],"6Dpgn":[function(require,module,exports) {
+const validation = (cvv, fio, number)=>{
+    let testFio = fio.match(/^([a-z]+[\s]{1}[a-z]+)$/gi);
+    const regCVV = new RegExp("^[0-9]{3}$");
+    const testCVV = regCVV.test(cvv) ? true : false;
+    const regNumber = new RegExp("^[0-9]{13,16}$");
+    const testNumber = regNumber.test(number) ? true : false;
+    if (testCVV == false || testNumber == false || testFio == null) return false;
+    else return true;
+};
+module.exports = validation; //module.exports = validationCVV;
+
+},{}]},["cv6me","6rimH"], "6rimH", "parcelRequire7921")
 
 //# sourceMappingURL=index.8cfc62b9.js.map
